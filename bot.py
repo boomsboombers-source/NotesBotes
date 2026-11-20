@@ -1,0 +1,35 @@
+import asyncio
+import logging
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+
+from config import BOT_TOKEN
+from database.db import init_db
+from handlers import start, tasks, quick_input
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+
+
+async def main():
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher()
+
+    # Порядок важен: quick_input — последним, чтобы не перехватывал кнопки
+    dp.include_router(start.router)
+    dp.include_router(tasks.router)
+    dp.include_router(quick_input.router)
+
+    await init_db()
+    logging.info("БД инициализирована, запускаю бота...")
+
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Бот остановлен.")
